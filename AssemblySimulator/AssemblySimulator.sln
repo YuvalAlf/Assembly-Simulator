@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.168
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "AssemblySimulator", "AssemblySimulator.fsproj", "{29549C2D-B6ED-4174-A51D-9112E1F3618F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{29549C2D-B6ED-4174-A51D-9112E1F3618F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29549C2D-B6ED-4174-A51D-9112E1F3618F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29549C2D-B6ED-4174-A51D-9112E1F3618F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29549C2D-B6ED-4174-A51D-9112E1F3618F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {952DF67C-B9D4-4FCE-A4F8-435E7BA36A8D}
+	EndGlobalSection
+EndGlobal
