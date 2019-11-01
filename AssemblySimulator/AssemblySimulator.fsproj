@@ -46,10 +46,11 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Extensions.fs" />
     <Compile Include="BaseSettings.fs" />
     <Compile Include="OpCodes.fs" />
     <Compile Include="Memmory.fs" />
-    <Compile Include="OpCodesOperations.fs" />
+    <Compile Include="Parsing.fs" />
     <Compile Include="RunningEnvironment.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
