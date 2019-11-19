@@ -3,20 +3,22 @@
 open System
 
 type TokenType =
-    | ORIG
     | Number of Value
+    | Reg of Register
+    | Label of string
+    | StringValue of string
+    | ORIG
     | FILL
-    | BKLW
+    | BLKW
+    | STRINGZ
     | HALT
     | END
     | GETC
     | PUTS
     | IN
     | OUT
-    | Reg of int
     | OpADD
     | OpAND
-    | OpBR
     | OpBRz
     | OpBRn
     | OpBRp
@@ -37,28 +39,28 @@ type TokenType =
     | OpSTI
     | OpSTR
     | OpTRAP
-    | Label of string
     static member Match = function
         | ".ORIG" -> ORIG
         | ".FILL" -> FILL
-        | ".BKLW" -> BKLW
+        | ".BLKW" -> BLKW
         | "HALT" -> HALT
+        | ".STRINGZ" -> STRINGZ
         | ".END" -> END
         | "GETC" -> GETC
         | "PUTS" -> PUTS
         | "IN" -> IN
-        | "R0" -> Reg 0
-        | "R1" -> Reg 1
-        | "R2" -> Reg 2
-        | "R3" -> Reg 3
-        | "R4" -> Reg 4
-        | "R5" -> Reg 5
-        | "R6" -> Reg 6
-        | "R7" -> Reg 7
+        | "R0" -> Reg R0
+        | "R1" -> Reg R1
+        | "R2" -> Reg R2
+        | "R3" -> Reg R3
+        | "R4" -> Reg R4
+        | "R5" -> Reg R5
+        | "R6" -> Reg R6
+        | "R7" -> Reg R7
         | "ADD" -> OpADD
         | "AND" -> OpAND
         | "NOT" -> OpNOT
-        | "BR" -> OpBR
+        | "BR" -> OpBRnzp
         | "BRZ" -> OpBRz
         | "BRN" -> OpBRn
         | "BRP" -> OpBRp
@@ -79,52 +81,61 @@ type TokenType =
         | "STI" -> OpSTI
         | "STR" -> OpSTR
         | "TRAP" -> OpTRAP
+        | str when str.[0] = '"' && str.[str.Length - 1] = '"' -> StringValue(str.[1..str.Length - 2])
         | numStr when numStr.IsInt16() -> Number(numStr.ToInt16())
-        | label -> Label label
+        | label ->
+            if label.EndsWith ":" then
+                Label label.[0..label.Length - 2]
+            else
+                Label label
 
 
 type ParsedCommand =
     | LabelCommand of string
     | OrigCommand of Address
     | EndCommand
-    | FillCommand of Value
-    | ArrayCommand of Value
+    | FillCommandValue of Value
+    //| FillCommandLabel of string
+    | ArrayCommand of amount : Value * value : Value
+    | StringzCommand of string
     | OpCodeCommand of OpCode
     static member ParseCommand (tokens : TokenType list) : Option<ParsedCommand * TokenType list> =
         match tokens with
-        | OpADD::(Reg dr)::(Reg sr1)::(Reg sr2)::rest   -> Some(OpCodeCommand(ADD(AddRegister(Register.Get dr, Register.Get sr1, Register.Get sr2))), rest)
-        | OpADD::(Reg dr)::(Reg sr)::(Number num)::rest -> Some(OpCodeCommand(ADD(AddImmediate(Register.Get dr, Register.Get sr, num))), rest)
-        | OpAND::(Reg dr)::(Reg sr1)::(Reg sr2)::rest   -> Some(OpCodeCommand(AND(AndRegister(Register.Get dr, Register.Get sr1, Register.Get sr2))), rest)
-        | OpAND::(Reg dr)::(Reg sr)::(Number num)::rest -> Some(OpCodeCommand(AND(AndImmediate(Register.Get dr, Register.Get sr, num))), rest)
-        | OpBR::(Label label)::rest    -> Some(OpCodeCommand(BR(BranchOperation(true, true, true, label))), rest)
-        | OpBRn::(Label label)::rest   -> Some(OpCodeCommand(BR(BranchOperation(true, false, false, label))), rest)
-        | OpBRz::(Label label)::rest   -> Some(OpCodeCommand(BR(BranchOperation(false, true, false, label))), rest)
-        | OpBRp::(Label label)::rest   -> Some(OpCodeCommand(BR(BranchOperation(false, false, true, label))), rest)
-        | OpBRnz::(Label label)::rest  -> Some(OpCodeCommand(BR(BranchOperation(true, true, false, label))), rest)
-        | OpBRnp::(Label label)::rest  -> Some(OpCodeCommand(BR(BranchOperation(true, false, true, label))), rest)
-        | OpBRzp::(Label label)::rest  -> Some(OpCodeCommand(BR(BranchOperation(false, true, true, label))), rest)
-        | OpBRnzp::(Label label)::rest -> Some(OpCodeCommand(BR(BranchOperation(true, true, true, label))), rest)
-        | OpJMP::(Reg rg)::rest -> Some(OpCodeCommand(JMP(JumpOperation(Register.Get rg))), rest)
-        | OpJSR::(Label label)::rest -> Some(OpCodeCommand(JSR(JumpSubroutineOperation(label))), rest)
-        | OpJSRR::(Reg rg)::rest -> Some(OpCodeCommand(JSRR(JumpSubroutineRegisterOperation(Register.Get rg))), rest)
-        | OpLD::(Reg dr)::(Label label)::rest -> Some(OpCodeCommand(LD(LoadOperation(Register.Get dr, label))), rest)
-        | OpLDI::(Reg dr)::(Label label)::rest -> Some(OpCodeCommand(LDI(LoadIndirectOperation(Register.Get dr, label))), rest)
-        | OpLDR::(Reg dr)::(Reg br)::(Number offset)::rest -> Some(OpCodeCommand(LDR(LoadRegisterOperation(Register.Get dr,Register.Get br, offset))), rest)
-        | OpLEA::(Reg dr)::(Label label)::rest -> Some(OpCodeCommand(LEA(LoadEffectiveAddressOperation(Register.Get dr, label))), rest)
-        | OpNOT::(Reg dr)::(Reg sr)::rest   -> Some(OpCodeCommand(NOT(NotOperation(Register.Get dr, Register.Get sr))), rest)
+        | OpADD::(Reg dr)::(Reg sr1)::(Reg sr2)::rest   -> Some(OpCodeCommand(AddRegister(dr, sr1, sr2)), rest)
+        | OpADD::(Reg dr)::(Reg sr)::(Number num)::rest -> Some(OpCodeCommand(AddImmediate(dr, sr, num)), rest)
+        | OpAND::(Reg dr)::(Reg sr1)::(Reg sr2)::rest   -> Some(OpCodeCommand(AndRegister(dr, sr1, sr2)), rest)
+        | OpAND::(Reg dr)::(Reg sr)::(Number num)::rest -> Some(OpCodeCommand(AndImmediate(dr, sr, num)), rest)
+        | OpBRn::(Label label)::rest   -> Some(OpCodeCommand(BranchOperation(true, false, false, label)), rest)
+        | OpBRz::(Label label)::rest   -> Some(OpCodeCommand(BranchOperation(false, true, false, label)), rest)
+        | OpBRp::(Label label)::rest   -> Some(OpCodeCommand(BranchOperation(false, false, true, label)), rest)
+        | OpBRnz::(Label label)::rest  -> Some(OpCodeCommand(BranchOperation(true, true, false, label)), rest)
+        | OpBRnp::(Label label)::rest  -> Some(OpCodeCommand(BranchOperation(true, false, true, label)), rest)
+        | OpBRzp::(Label label)::rest  -> Some(OpCodeCommand(BranchOperation(false, true, true, label)), rest)
+        | OpBRnzp::(Label label)::rest -> Some(OpCodeCommand(BranchOperation(true, true, true, label)), rest)
+        | OpJMP::(Reg rg)::rest -> Some(OpCodeCommand(JumpOperation(rg)), rest)
+        | OpJSR::(Label label)::rest -> Some(OpCodeCommand(JumpSubroutineOperation(label)), rest)
+        | OpJSRR::(Reg rg)::rest -> Some(OpCodeCommand(JumpSubroutineRegisterOperation(rg)), rest)
+        | OpLD::(Reg dr)::(Label label)::rest -> Some(OpCodeCommand(LoadOperation(dr, label)), rest)
+        | OpLDI::(Reg dr)::(Label label)::rest -> Some(OpCodeCommand(LoadIndirectOperation(dr, label)), rest)
+        | OpLDR::(Reg dr)::(Reg br)::(Number offset)::rest -> Some(OpCodeCommand(LoadRegisterOperation(dr,br, offset)), rest)
+        | OpLEA::(Reg dr)::(Label label)::rest -> Some(OpCodeCommand(LoadEffectiveAddressOperation(dr, label)), rest)
+        | OpNOT::(Reg dr)::(Reg sr)::rest   -> Some(OpCodeCommand(NotOperation(dr, sr)), rest)
         | OpRET::rest   -> Some(OpCodeCommand(RET), rest)
-        | OpST::(Reg sr)::(Label label)::rest -> Some(OpCodeCommand(ST(StoreOperation(Register.Get sr, label))), rest)
-        | OpSTI::(Reg sr)::(Label label)::rest -> Some(OpCodeCommand(STI(StoreIndirectOperation(Register.Get sr, label))), rest)
-        | OpSTR::(Reg sr)::(Reg br)::(Number offset)::rest -> Some(OpCodeCommand(STR(StoreRegisterOperation(Register.Get sr,Register.Get br, offset))), rest)
-        | OpTRAP::(Number trapNumber)::rest -> Some(OpCodeCommand(TRAP(TrapOperation(trapNumber))), rest)
-        | GETC::rest -> Some(OpCodeCommand(TRAP(TrapOperation(0x20s))), rest)
-        | OUT::rest -> Some(OpCodeCommand(TRAP(TrapOperation(0x21s))), rest)
-        | PUTS::rest -> Some(OpCodeCommand(TRAP(TrapOperation(0x22s))), rest)
-        | IN::rest -> Some(OpCodeCommand(TRAP(TrapOperation(0x23s))), rest)
-        | HALT::rest -> Some(OpCodeCommand(TRAP(TrapOperation(0x25s))), rest)
-        | FILL::(Number number)::rest -> Some(FillCommand(number), rest)
-        | BKLW::(Number number)::rest -> Some(ArrayCommand(number), rest)
-        | ORIG::(Number number)::rest -> Some(OrigCommand(number), rest)
+        | OpST::(Reg sr)::(Label label)::rest -> Some(OpCodeCommand(StoreOperation(sr, label)), rest)
+        | OpSTI::(Reg sr)::(Label label)::rest -> Some(OpCodeCommand(StoreIndirectOperation(sr, label)), rest)
+        | OpSTR::(Reg sr)::(Reg br)::(Number offset)::rest -> Some(OpCodeCommand(StoreRegisterOperation(sr, br, offset)), rest)
+        | OpTRAP::(Number trapNumber)::rest -> Some(OpCodeCommand(TrapOperation(trapNumber)), rest)
+        | GETC::rest -> Some(OpCodeCommand(TrapOperation(0x20s)), rest)
+        | OUT::rest -> Some(OpCodeCommand(TrapOperation(0x21s)), rest)
+        | PUTS::rest -> Some(OpCodeCommand(TrapOperation(0x22s)), rest)
+        | IN::rest -> Some(OpCodeCommand(TrapOperation(0x23s)), rest)
+        | HALT::rest -> Some(OpCodeCommand(TrapOperation(0x25s)), rest)
+        | FILL::(Number number)::rest -> Some(FillCommandValue(number), rest)
+       // | FILL::(Label label)::rest -> Some(FillCommandLabel(label), rest)
+        | STRINGZ::(StringValue string)::rest -> Some(StringzCommand(string), rest)
+        | BLKW::(Number amount)::(Number value)::rest -> Some(ArrayCommand(amount, value), rest)
+        | BLKW::(Number amount)::rest -> Some(ArrayCommand(amount, 0s), rest)
+        | ORIG::(Number address)::rest -> Some(OrigCommand(address), rest)
         | END::rest -> Some(EndCommand, rest)
         | (Label label)::rest -> Some(LabelCommand label, rest)
         | _ -> None

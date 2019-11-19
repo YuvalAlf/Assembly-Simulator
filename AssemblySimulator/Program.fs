@@ -4,20 +4,44 @@
 namespace Simulator
 
 module Program = 
+    open System.IO
+    open System.Text.RegularExpressions
+    open System
+    open System.Diagnostics
+
+    let extractIds str = seq {
+            for id in Regex.Split(str, @"\d\d\d\d+") do
+                if not <| System.String.IsNullOrEmpty id then
+                    yield id
+        }
+
     [<EntryPoint>]
     let main argv = 
-        let path = @"C:\Users\Yuval\Programming\FSharp\AssemblySimulator\Input Samples\Hw2.asm"
-        let maxCycles = 100000
-        let befRegisters = 
-            Register.AllZeros.Add(R0, 5s).Add(R1, 13s)
-        printfn "Registers before: %s" <| Register.ToString befRegisters
-        let setupEnvironment = 
-            RunningEnvironment.InitEmpty(befRegisters)
-                              .LoadCode(path)
-                              .SetRegisters([|(R0, 5s); (R1, 13s)|])
+        let dirIndex = 0
+        let baseDirPath = @"C:\Users\Yuval\Programming\FSharp\AssemblySimulator\Input Samples"
+        let submittersDirFile = 
+            Directory.EnumerateFiles(baseDirPath)
+            |> List.ofSeq
+            |> List.sort
+            |> List.item dirIndex
+        let submittersTxtData = 
+            Directory.EnumerateFiles submittersDirFile 
+            |> Seq.find (fun path -> path.EndsWith ".txt")
+            |> File.ReadAllText
+        let submittersAsmPath = 
+            Directory.EnumerateFiles submittersDirFile 
+            |> Seq.find (fun path -> path.EndsWith ".asm")
 
-        match setupEnvironment.Run(maxCycles) with
-        | None -> printfn "Infinite Loop"
-        | Some(environmentAfterRunning) -> printfn "Registers after: %s" <| Register.ToString environmentAfterRunning.Registers
+        for id in extractIds (baseDirPath) do
+            printfn "%s" id
+        let maxOperations = 1000000
+        
+        let setupEnvironment = RunningEnvironment.InitEmpty().LoadCode(submittersAsmPath)
+        let solutionTester = new EnvironmentTester(setupEnvironment, maxOperations)
+        
+        Hw1.check(solutionTester)
 
+        printfn "Type any key to end and open asm file"
+        Console.ReadKey(false) |> ignore
+        Process.Start(submittersAsmPath) |> ignore
         0 // return an integer exit code

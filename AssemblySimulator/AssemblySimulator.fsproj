@@ -49,9 +49,11 @@
     <Compile Include="Extensions.fs" />
     <Compile Include="BaseSettings.fs" />
     <Compile Include="OpCodes.fs" />
-    <Compile Include="Memmory.fs" />
+    <Compile Include="Memory.fs" />
     <Compile Include="Parsing.fs" />
     <Compile Include="RunningEnvironment.fs" />
+    <Compile Include="EnvironmentTester.fs" />
+    <Compile Include="Hw1.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
