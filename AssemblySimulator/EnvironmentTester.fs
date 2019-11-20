@@ -9,14 +9,14 @@ type EnvironmentTester(environment : RunningEnvironment, maxOperations : int) =
     member tester.TestSubroutine (subroutineName : string,
                                   inputRegisters : (Register * Value) list,
                                   expectedRegisters : (Register * Value) list) =
-        let rec run (env : RunningEnvironment) (cyclesLeft : int) : Option<failMessage> =
+        let rec run (cyclesLeft : int) (env : RunningEnvironment) : Option<failMessage> =
             match cyclesLeft with
             | 0 -> Some(sprintf "Infinite loop after %d operations" maxOperations)
             | cycles ->
                 if env.PC <> 0s then
                     match env.DoOperation() with
                     | None -> Some(sprintf "Subroutine halted at pc = %d" env.PC)
-                    | Some(environment) -> run environment (cyclesLeft - 1)
+                    | Some(environment) -> run (cyclesLeft - 1) environment
                 else
                     let incorrectRegisters =
                         expectedRegisters
@@ -29,10 +29,8 @@ type EnvironmentTester(environment : RunningEnvironment, maxOperations : int) =
                         let toString (reg, expectedValue, realValue) = sprintf "Reg %A was expected to be %d instead of %d" reg expectedValue realValue
                         Some(incorrectRegisters |> Utils.mkString ", " toString)
 
-        match environment.SetRegisters(inputRegisters).SetRegister(R7, 0s).SetPcAtLabel subroutineName with
-        | None -> Some(sprintf "label %s doesnt exist" subroutineName)
-        | Some (environmentAtSubroutine) ->
-            run environmentAtSubroutine maxOperations
+        environment.SetRegisters(inputRegisters).SetRegister(R7, 0s).SetPcAtLabel subroutineName
+        |> run maxOperations
 
     static member StringsEqual(s1 : string, s2 : string) =
         let str1 = Regex.Replace(s1, "\n\r\t .,!()", "").ToUpper()
