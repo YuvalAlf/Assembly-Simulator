@@ -18,9 +18,9 @@ module Program =
     [<EntryPoint>]
     let main argv = 
         let dirIndex = 0
-        let baseDirPath = @"C:\Users\Yuval\Programming\FSharp\AssemblySimulator\Input Samples"
+        let baseDirPath = @"C:\Users\Yuval\Downloads\assembly"
         let submittersDirFile = 
-            Directory.EnumerateFiles(baseDirPath)
+            Directory.EnumerateDirectories(baseDirPath)
             |> List.ofSeq
             |> List.sort
             |> List.item dirIndex

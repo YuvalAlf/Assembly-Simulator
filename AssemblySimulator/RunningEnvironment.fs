@@ -107,10 +107,10 @@ type RunningEnvironment(pc : Address,
             Some(RunningEnvironment(nextPc, cc, registers, labels, input, output, memory))
         | JumpOperation(reg) -> Some(RunningEnvironment(registers.[reg], cc, registers, labels, input, output, memory))
         | JumpSubroutineOperation(label) -> 
-            let newRegisters = registers.Add(R7, pc)
+            let newRegisters = registers.Add(R7, pc + 1s)
             Some(RunningEnvironment(labels.[label], cc, newRegisters, labels, input, output, memory))
         | JumpSubroutineRegisterOperation(reg) -> 
-            let newRegisters = registers.Add(R7, pc)
+            let newRegisters = registers.Add(R7, pc + 1s)
             Some(RunningEnvironment(registers.[reg], cc, newRegisters, labels, input, output, memory))
         | LoadOperation(dr, label) -> 
             let newRegisters = registers.Add(dr, memory.ValueAt(labels.[label]))
@@ -141,7 +141,7 @@ type RunningEnvironment(pc : Address,
         | StoreRegisterOperation(sr, reg, offset) -> 
             let newMemory = memory.SetValue(registers.[reg] + offset, registers.[sr])
             Some(RunningEnvironment(pc + 1s, cc, registers,labels, input, output, newMemory))
-        | RET -> Some(RunningEnvironment(registers.[R7] + 1s, cc, registers,labels, input, output, memory))
+        | RET -> Some(RunningEnvironment(registers.[R7], cc, registers,labels, input, output, memory))
         | TrapOperation(imm) ->
             match imm with
             | 0x20s -> // GETC

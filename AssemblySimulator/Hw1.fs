@@ -3,6 +3,8 @@ namespace Simulator
 
 module Hw1 =
     let check (tester : EnvironmentTester) =
+        let modulu (nom : int16, dem : int16) = abs(nom % dem)
+
         let tests = seq{
             yield ("MUL", 1, [(R0, 0s);     (R1, 220s)],    [(R2, 0s * 220s)])
             yield ("MUL", 2, [(R0, 915s);   (R1, 11s)],     [(R2, 915s * 11s)])
@@ -15,15 +17,15 @@ module Hw1 =
             yield ("MUL", 8, [(R0, 10000s); (R1, -10000s)], [(R2, 10000s * -10000s)])
             yield ("MUL", 9, [(R0, -7s);    (R1, 0s)],      [(R2, -7s * 0s)])
             
-            yield ("DIV", 1, [(R0, 0s);    (R1, 2s)],    [(R3, 0s / 2s);      (R4, 0s % 2s)])
-            yield ("DIV", 2, [(R0, 2s);    (R1, 0s)],    [(R3, -1s);          (R4, -1s)])
-            yield ("DIV", 3, [(R0, -9s);   (R1, 0s)],    [(R3, -1s);          (R4, -1s)])
-            yield ("DIV", 4, [(R0, 0s);    (R1, 0s)],    [(R3, -1s);          (R4, -1s)])
-            yield ("DIV", 5, [(R0, 22s);   (R1, 10s)],   [(R3, 22s / 10s);    (R4, 22s % 10s)])
-            yield ("DIV", 6, [(R0, 155s);  (R1, -213s)], [(R3, 155s / -213s); (R4, 155s % -213s)])
-            yield ("DIV", 7, [(R0, -724s); (R1, -9s)],   [(R3, -724s / -9s);  (R4, -724s % -9s)])
-            yield ("DIV", 8, [(R0, -198s); (R1, 99s)],   [(R3, -198s / 99s);  (R4, -198s % 99s)])
-            yield ("DIV", 9, [(R0, 0s);    (R1, -900s)], [(R3, 0s / -900s);   (R4, 0s % -900s)])
+            yield ("DIV", 1, [(R0, 0s);    (R1, 2s)],    [(R2, 0s / 2s);      (R3, modulu(0s, 2s))])
+            yield ("DIV", 2, [(R0, 2s);    (R1, 0s)],    [(R2, -1s);          (R3, -1s)])
+            yield ("DIV", 3, [(R0, -9s);   (R1, 0s)],    [(R2, -1s);          (R3, -1s)])
+            yield ("DIV", 4, [(R0, 0s);    (R1, 0s)],    [(R2, -1s);          (R3, -1s)])
+            yield ("DIV", 5, [(R0, 22s);   (R1, 10s)],   [(R2, 22s / 10s);    (R3, modulu(22s, 10s))])
+            yield ("DIV", 6, [(R0, 155s);  (R1, -213s)], [(R2, 155s / -213s); (R3, modulu(155s, -213s))])
+            yield ("DIV", 7, [(R0, -724s); (R1, -9s)],   [(R2, -724s / -9s);  (R3, modulu(-724s, -9s))])
+            yield ("DIV", 8, [(R0, -198s); (R1, 99s)],   [(R2, -198s / 99s);  (R3, modulu(-198s, 99s))])
+            yield ("DIV", 9, [(R0, 0s);    (R1, -900s)], [(R2, 0s / -900s);   (R3, modulu(0s, -900s))])
             
             yield ("TRIANGLEINEQUALITY", 1, [(R0, 3s);  (R1, 4s);   (R2, 5s)],   [(R3, 1s)])
             yield ("TRIANGLEINEQUALITY", 2, [(R0, 6s);  (R1, 6s);   (R2, 12s)],  [(R3, 1s)])
