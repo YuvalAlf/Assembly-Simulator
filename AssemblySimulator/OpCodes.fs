@@ -5,7 +5,7 @@ type OpCode =
     | AddImmediate of dest : Register * source1 : Register * immediate : Immediate
     | AndRegister of dest : Register * source1 : Register * source2 : Register
     | AndImmediate of dest : Register * source1 : Register * immediate : Immediate
-    | BranchOperation of n : bool * z : bool * p : bool * label : string
+    | BranchOperation of n : bool * z : bool * p : bool * address : Choice<string, int16>
     | JumpOperation of Register
     | JumpSubroutineOperation of label : string
     | JumpSubroutineRegisterOperation of register : Register

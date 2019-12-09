@@ -13,6 +13,7 @@ type RunningEnvironment(pc : Address,
     static member InitEmpty() =
         new RunningEnvironment(0s, CC.Z, Register.AllZeros, Map.empty, [], [], Memory.InitEmpty())
 
+    member env.Labels = labels
     member env.CurrentOperation = memory.OpCodeAt pc
     member env.Registers = registers
     member env.Memory = memory
@@ -64,6 +65,8 @@ type RunningEnvironment(pc : Address,
         | _  ->
             match ParsedCommand.ParseCommand commands with
             | Some (LabelCommand(label), rest) ->
+                if env.Labels.ContainsKey label then
+                    failwith <| sprintf "Duplicating labels %s" label
                 env.AddLabel(label, pc).CreateEnvironment pc rest
             | Some (FillCommandValue(number), rest) ->
                 env.WithMemory(memory.SetValue(pc, number)).CreateEnvironment (pc + 1s) rest
@@ -78,7 +81,7 @@ type RunningEnvironment(pc : Address,
                 |> Array.map (fun ch -> ch.ToAsciiInt16())
                 |> Array.fold (fun (e : RunningEnvironment) v -> e.WriteValue v) env
                 |> fun environment -> environment.CreateEnvironment (environment.PC) rest
-            | _ -> failwith <| "Compilation error at code line 0x" + (pc.ToString("X"))
+            | parsed -> failwith <| "Compilation error at code line 0x" + (pc.ToString("X"))
         
     member env.DoOperation () : RunningEnvironment option =
         match env.CurrentOperation with
@@ -98,12 +101,19 @@ type RunningEnvironment(pc : Address,
             let newRegisters = registers.Add(dr, registers.[sr] &&& imm)
             let newCC = CC.Calc(newRegisters.[dr])
             Some(RunningEnvironment(pc + 1s, newCC, newRegisters, labels, input, output, memory))
-        | BranchOperation(n,z,p,label) -> 
+        | BranchOperation(n,z,p,Choice1Of2 label) -> 
             let nextPc = 
                 match cc with
                 | N -> if n then labels.[label] else pc + 1s
                 | Z -> if z then labels.[label] else pc + 1s
                 | P -> if p then labels.[label] else pc + 1s
+            Some(RunningEnvironment(nextPc, cc, registers, labels, input, output, memory))
+        | BranchOperation(n,z,p,Choice2Of2 addressOffset) -> 
+            let nextPc = 
+                match cc with
+                | N -> if n then pc + addressOffset + 1s else pc + 1s
+                | Z -> if z then pc + addressOffset + 1s else pc + 1s
+                | P -> if p then pc + addressOffset + 1s else pc + 1s
             Some(RunningEnvironment(nextPc, cc, registers, labels, input, output, memory))
         | JumpOperation(reg) -> Some(RunningEnvironment(registers.[reg], cc, registers, labels, input, output, memory))
         | JumpSubroutineOperation(label) -> 

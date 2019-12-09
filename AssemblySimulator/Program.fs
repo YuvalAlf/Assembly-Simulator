@@ -10,15 +10,14 @@ module Program =
     open System.Diagnostics
 
     let extractIds str = seq {
-            for id in Regex.Split(str, @"\d\d\d\d+") do
-                if not <| System.String.IsNullOrEmpty id then
-                    yield id
+            for idMatch in Regex.Matches(str, @"\d\d\d\d+") do
+                yield idMatch.Value
         }
 
     [<EntryPoint>]
     let main argv = 
         let dirIndex = 0
-        let baseDirPath = @"C:\Users\Yuval\Downloads\assembly"
+        let baseDirPath = @"C:\Users\Yuval\Google Drive\Assembly Course\Hw Checking\Hw1\Moodle"
         let submittersDirFile = 
             Directory.EnumerateDirectories(baseDirPath)
             |> List.ofSeq
@@ -26,16 +25,18 @@ module Program =
             |> List.item dirIndex
         let submittersTxtData = 
             Directory.EnumerateFiles submittersDirFile 
-            |> Seq.find (fun path -> path.EndsWith ".txt")
+            |> Seq.find (fun path -> path.ToLower().EndsWith ".txt")
             |> File.ReadAllText
         let submittersAsmPath = 
             Directory.EnumerateFiles submittersDirFile 
-            |> Seq.find (fun path -> path.EndsWith ".asm")
+            |> Seq.find (fun path -> path.ToLower().EndsWith ".asm")
 
-        for id in extractIds (baseDirPath) do
+        for id in extractIds(submittersTxtData) do
             printfn "%s" id
         let maxOperations = 1000000
         
+        Process.Start(submittersAsmPath) |> ignore
+
         let setupEnvironment = RunningEnvironment.InitEmpty().LoadCode(submittersAsmPath)
         let solutionTester = new EnvironmentTester(setupEnvironment, maxOperations)
         
@@ -43,5 +44,4 @@ module Program =
 
         printfn "Type any key to end and open asm file"
         Console.ReadKey(false) |> ignore
-        Process.Start(submittersAsmPath) |> ignore
         0 // return an integer exit code
