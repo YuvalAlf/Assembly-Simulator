@@ -19,3 +19,4 @@ type OpCode =
     | StoreRegisterOperation of source : Register * baseRegister : Register * offset : Immediate
     | TrapOperation of Immediate
     | RET
+    | NoOperation

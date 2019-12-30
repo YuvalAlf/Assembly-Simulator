@@ -36,13 +36,15 @@ type RunningEnvironment(pc : Address,
         new RunningEnvironment(pc, cc, registers, labels, Array.toList(newInput.ToCharArray()), output, memory)
     member private env.WithMemory newMemory =
         new RunningEnvironment(pc, cc, registers, labels, input, output, newMemory)
-    member private env.WithPc newPc =
+    member env.WithPc (newPc : Address) : RunningEnvironment =
         new RunningEnvironment(newPc, cc, registers, labels, input, output, memory)
+    member env.IncrementPc () : RunningEnvironment =
+        new RunningEnvironment(pc + 1s, cc, registers, labels, input, output, memory)
     member env.SetPcAtLabel(label : string) =
         labels.TryFind label
         |> Option.map (fun address -> env.WithPc address)
         |> Option.defaultWith (fun () -> failwith <| sprintf "Label %s doesnt exist" label)
-    member env.LoadCode(path : string) =
+    member env.LoadCode(path : string) : RunningEnvironment =
         let lines = File.ReadAllLines path
         let tokenizedIndexedLines = Parsing.parseLines lines
         let tokenizedLines = tokenizedIndexedLines |> List.map snd
@@ -51,7 +53,8 @@ type RunningEnvironment(pc : Address,
         | Some(OrigCommand(orig), rest) ->
             match ParsedCommand.ParseCommand(List.rev rest) with
             | Some(EndCommand, init) ->
-                env.WithPc(orig).CreateEnvironment orig (List.rev init)
+                let setupEnvironment : RunningEnvironment = env.WithPc(orig).CreateEnvironment (List.rev init)
+                setupEnvironment.WithPc(orig)
             | _ -> failwith "Code doesn't end with an end operation"
         | x -> failwith "Code doesn't start with orig"
 
@@ -59,7 +62,7 @@ type RunningEnvironment(pc : Address,
         env.WithMemory(env.Memory.SetValue(pc, value))
            .WithPc(env.PC + 1s)
 
-    member private env.CreateEnvironment pc commands =
+    member private env.CreateEnvironment commands =
         match commands with
         | [] -> env
         | _  ->
@@ -67,21 +70,21 @@ type RunningEnvironment(pc : Address,
             | Some (LabelCommand(label), rest) ->
                 if env.Labels.ContainsKey label then
                     failwith <| sprintf "Duplicating labels %s" label
-                env.AddLabel(label, pc).CreateEnvironment pc rest
+                env.AddLabel(label, pc).CreateEnvironment rest
             | Some (FillCommandValue(number), rest) ->
-                env.WithMemory(memory.SetValue(pc, number)).CreateEnvironment (pc + 1s) rest
+                env.WithMemory(memory.SetValue(pc, number)).IncrementPc().CreateEnvironment rest
             | Some (OpCodeCommand(opCode), rest) ->
-                env.WithMemory(memory.SetOpCode(pc, opCode)).CreateEnvironment (pc + 1s) rest
+                env.WithMemory(memory.SetOpCode(pc, opCode)).IncrementPc().CreateEnvironment rest
             | Some (ArrayCommand(amount, value), rest) ->
                 Array.init ((int)amount) (fun _ -> value)
                 |> Array.fold (fun (e : RunningEnvironment) v -> e.WriteValue v) env
-                |> fun environment -> environment.CreateEnvironment (environment.PC) rest
+                |> fun environment -> environment.CreateEnvironment rest
             | Some (StringzCommand(str), rest) ->         
-                Array.append (str.ToCharArray()) ("\0".ToCharArray())
+                Array.append (str.ToCharArray()) ("\000".ToCharArray())
                 |> Array.map (fun ch -> ch.ToAsciiInt16())
                 |> Array.fold (fun (e : RunningEnvironment) v -> e.WriteValue v) env
-                |> fun environment -> environment.CreateEnvironment (environment.PC) rest
-            | parsed -> failwith <| "Compilation error at code line 0x" + (pc.ToString("X"))
+                |> fun environment -> environment.CreateEnvironment rest
+            | parsed -> failwith(sprintf "Compilation error at code line %X" pc)
         
     member env.DoOperation () : RunningEnvironment option =
         match env.CurrentOperation with
@@ -152,11 +155,15 @@ type RunningEnvironment(pc : Address,
             let newMemory = memory.SetValue(registers.[reg] + offset, registers.[sr])
             Some(RunningEnvironment(pc + 1s, cc, registers,labels, input, output, newMemory))
         | RET -> Some(RunningEnvironment(registers.[R7], cc, registers,labels, input, output, memory))
+        | NoOperation ->
+            printfn "No operation invoked at %X" pc
+            Some(RunningEnvironment(pc + 1s, cc, registers,labels, input, output, memory))
         | TrapOperation(imm) ->
             match imm with
             | 0x20s -> // GETC
                 match input with
-                | [] -> failwith "GETC with no more input!"
+                | [] -> printfn "GETC with no more input!"
+                        None
                 | ch::restInput ->
                     let newRegisters = registers.Add(R0, ch.ToAsciiInt16()).Add(R7, pc + 1s)
                     Some(RunningEnvironment(pc + 1s, cc, newRegisters, labels, restInput, output, memory))
@@ -176,7 +183,8 @@ type RunningEnvironment(pc : Address,
                 Some(RunningEnvironment(pc + 1s, cc, newRegisters, labels, input, newOutput, memory))
             | 0x23s -> // IN
                 match input with
-                | [] -> failwith "IN with no more input!"
+                | [] -> printfn "IN with no more input!"
+                        None
                 | ch::restInput ->
                     let inputValue = ch.ToAsciiInt16()
                     let newRegisters = registers.Add(R0, inputValue).Add(R7, pc + 1s)

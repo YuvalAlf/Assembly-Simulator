@@ -33,8 +33,9 @@ type EnvironmentTester(environment : RunningEnvironment, maxOperations : int) =
         |> run maxOperations
 
     static member StringsEqual(s1 : string, s2 : string) =
-        let str1 = Regex.Replace(s1, "\n\r\t .,!()", "").ToUpper()
-        let str2 = Regex.Replace(s2, "\n\r\t .,!()", "").ToUpper()
+        let optionalChars = @"\n|\r|\t| |\.|,|!|\(|\)|"
+        let str1 = Regex.Replace(s1, optionalChars, "").ToLower()
+        let str2 = Regex.Replace(s2, optionalChars, "").ToLower()
         str1.Equals str2
 
 
@@ -47,10 +48,12 @@ type EnvironmentTester(environment : RunningEnvironment, maxOperations : int) =
                 match env.DoOperation() with
                 | Some(environment) -> run environment (cyclesLeft - 1)
                 | None -> 
-                    let givenOutput = environment.GetOutput()
+                    let givenOutput = env.GetOutput()
                     match EnvironmentTester.StringsEqual(givenOutput, expectedOutput) with
                     | true -> None
-                    | false -> Some (sprintf "Output isn't as expected: %s %s" (Environment.NewLine) givenOutput)
+                    | false -> Some ((sprintf "Output isn't as expected:\n")
+                                     + (sprintf "\t given: \n%s\n" (givenOutput.ToLower()))
+                                     + (sprintf "\t expected: \n%s\n" (expectedOutput.ToLower())))
 
         
         run (environment.SetInput(input)) maxOperations

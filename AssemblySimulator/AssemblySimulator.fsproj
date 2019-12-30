@@ -54,6 +54,7 @@
     <Compile Include="RunningEnvironment.fs" />
     <Compile Include="EnvironmentTester.fs" />
     <Compile Include="Hw1.fs" />
+    <Compile Include="Hw2.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />

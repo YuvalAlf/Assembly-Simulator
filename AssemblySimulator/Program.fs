@@ -16,8 +16,10 @@ module Program =
 
     [<EntryPoint>]
     let main argv = 
-        let dirIndex = 0
-        let baseDirPath = @"C:\Users\Yuval\Google Drive\Assembly Course\Hw Checking\Hw1\Moodle"
+        let hwNum = (2).ToString()
+        let dirIndex = 5
+
+        let baseDirPath = @"C:\Users\Yuval\Google Drive\Assembly Course\Hw Checking\Hw" + hwNum + @"\Moodle"
         let submittersDirFile = 
             Directory.EnumerateDirectories(baseDirPath)
             |> List.ofSeq
@@ -31,6 +33,7 @@ module Program =
             Directory.EnumerateFiles submittersDirFile 
             |> Seq.find (fun path -> path.ToLower().EndsWith ".asm")
 
+        printfn "%s" submittersDirFile
         for id in extractIds(submittersTxtData) do
             printfn "%s" id
         let maxOperations = 1000000
@@ -40,7 +43,7 @@ module Program =
         let setupEnvironment = RunningEnvironment.InitEmpty().LoadCode(submittersAsmPath)
         let solutionTester = new EnvironmentTester(setupEnvironment, maxOperations)
         
-        Hw1.check(solutionTester)
+        Hw2.check(solutionTester)
 
         printfn "Type any key to end and open asm file"
         Console.ReadKey(false) |> ignore

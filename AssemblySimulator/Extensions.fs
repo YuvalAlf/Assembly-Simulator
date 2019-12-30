@@ -23,13 +23,18 @@ module TypeExtensions =
                 (NumberStyles.Integer, str)
 
         member str.IsInt16() : bool =
-            let value = 0s
+            let value = 0L
             let numberStyle, trimmedStr = str.FormatNumber()
-            Int16.TryParse(trimmedStr, numberStyle, CultureInfo.InvariantCulture, ref value)
+            Int64.TryParse(trimmedStr, numberStyle, CultureInfo.InvariantCulture, ref value)
         
         member str.ToInt16() : Int16 =
             let numberStyle, trimmedStr = str.FormatNumber()
-            Int16.Parse(trimmedStr, numberStyle)
+            let number = Int64.Parse(trimmedStr, numberStyle)
+            let int16Number = int64(int16(number));
+            if number <> int16Number then
+                printfn "Overflow of %d" number
+            int16(int16Number)
+
             
     type Char with
         member ch.ToAsciiInt16() : Int16 =

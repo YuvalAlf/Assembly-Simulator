@@ -47,6 +47,7 @@ type TokenType =
         | ".STRINGZ" -> STRINGZ
         | ".END" -> END
         | "GETC" -> GETC
+        | "OUT" -> OUT
         | "PUTS" -> PUTS
         | "IN" -> IN
         | "R0" -> Reg R0
@@ -150,8 +151,21 @@ type ParsedCommand =
 module Parsing =
     let tokenizeLine (line : string) =
         let lineWithoutComment = line.Split(';').[0]
+        let amountOfQuotations str = str |> Seq.filter (fun ch -> ch = '\"') |> Seq.length
         let tokens = lineWithoutComment.ToUpper().Split(" \t,".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
-        tokens |> Array.map TokenType.Match
+        let rec mergeQuotations (reverse : string list) (tokensLeft : string list) =
+            match (reverse, tokensLeft) with
+            | [], [] -> []
+            | reverse, [] -> List.rev reverse
+            | [], (y::ys) -> mergeQuotations [y] ys
+            | (x :: xs), (y :: ys) ->
+                match amountOfQuotations x with
+                | 1 -> mergeQuotations ((x + " " + y) :: xs) (ys)
+                | _ -> mergeQuotations (y :: x :: xs) (ys)
+                    
+                    
+        let goodTokens = mergeQuotations [] (List.ofArray tokens)
+        goodTokens |> List.toArray |> Array.map TokenType.Match
             
     let parseLines (lines : string []) =
         [ for i = 0 to lines.Length - 1 do
